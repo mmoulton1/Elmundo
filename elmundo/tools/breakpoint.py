@@ -12,7 +12,7 @@ def combined_cost_salt_cavern_compressor_pipeline(storage_capacity, p_outlet, fl
     pipeline_length (float): Length of the pipeline in km.
 
     Returns:
-    dict: Dictionary containing individual and total capital costs in 2018 USD.
+    dict: Dictionary containing individual and total capital costs in 2018 USD (actually I'm not sure what year dollars it is in).
     """
 
     # Calculate capital cost for salt cavern storage
@@ -33,6 +33,7 @@ def combined_cost_salt_cavern_compressor_pipeline(storage_capacity, p_outlet, fl
 
     # Combine costs
     total_cost = cavern_cost + compressor_cost + pipeline_cost
+    overall_cost_per_kg_H2 = total_cost/storage_capacity
 
     return {
         'cavern_cost': cavern_cost,
@@ -41,7 +42,10 @@ def combined_cost_salt_cavern_compressor_pipeline(storage_capacity, p_outlet, fl
         'system_power': system_power,
         'compressor_cost': compressor_cost,
         'pipeline_cost': pipeline_cost,
-        'total_cost': total_cost
+        'total_cost': total_cost,
+        'overall_cost_per_kg_H2' : overall_cost_per_kg_H2
+        
+        
     }
 
 # Example usage
@@ -84,6 +88,7 @@ def combined_cost_underground_pipe_compressor(storage_capacity, p_outlet, flow_r
 
     # Combine costs
     total_cost = pipe_cost + compressor_cost
+    overall_cost_per_kg_H2 = total_cost/storage_capacity
 
     return {
         'pipe_cost': pipe_cost,
@@ -91,7 +96,8 @@ def combined_cost_underground_pipe_compressor(storage_capacity, p_outlet, flow_r
         'compressor_power': compressor_power,
         'system_power': system_power,
         'compressor_cost': compressor_cost,
-        'total_cost': total_cost
+        'total_cost': total_cost,
+        'overall_cost_per_kg_H2' : overall_cost_per_kg_H2
     }
 
 # Example usage
@@ -221,4 +227,35 @@ plt.title('Capital Cost vs Pipeline Length')
 plt.legend()
 plt.grid(True)
 plt.tight_layout()
+plt.show()
+
+# Define the range of storage capacities
+storage_capacities = np.linspace(100000, 8000000, 50000)  # Example range from 1,000 to 500,000 kg
+
+# Fixed parameters
+p_outlet = 100
+flow_rate_kg_d = 439481
+pipeline_length = 0
+
+# Initialize lists to store results
+salt_cavern_costs = []
+underground_pipe_costs = []
+
+# Compute the costs for each storage capacity
+for capacity in storage_capacities:
+    salt_cavern_result = combined_cost_salt_cavern_compressor_pipeline(capacity, p_outlet, flow_rate_kg_d, pipeline_length)
+    underground_pipe_result = combined_cost_underground_pipe_compressor(capacity, p_outlet, flow_rate_kg_d)
+    
+    salt_cavern_costs.append(salt_cavern_result['overall_cost_per_kg_H2'])
+    underground_pipe_costs.append(underground_pipe_result['overall_cost_per_kg_H2'])
+
+# Plot the results
+plt.figure(figsize=(10, 6))
+plt.plot(storage_capacities, salt_cavern_costs, label='Salt Cavern Storage', color='b')
+plt.plot(storage_capacities, underground_pipe_costs, label='Underground Pipe Storage', color='r')
+plt.xlabel('Storage Capacity (kg)')
+plt.ylabel('Overall Cost per kg H2 (USD)')
+plt.title('Overall Cost per kg H2 vs Storage Capacity')
+plt.legend()
+plt.grid(True)
 plt.show()

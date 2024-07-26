@@ -27,9 +27,9 @@ def plot_project_idea(site_point, circle_radius, salt_cavern_location):
     if salt_cavern_location is not None:
         salt_cavern_polygon = ShapelyPolygon(salt_cavern_location)
         if circle_geometry.contains(salt_cavern_polygon):
-            cheaper_option = 'Salt Cavern (Cheaper)'
+            cheaper_option = 'Salt Cavern'
         else:
-            cheaper_option = 'Underground Pipe (Cheaper)'
+            cheaper_option = 'Underground Pipe'
 
         ax.text(0.5, 0.1, f'Cheaper Option: {cheaper_option}', transform=ax.transAxes, fontsize=12, ha='center')
 
@@ -53,7 +53,7 @@ site_point = {'x': 10, 'y': 10}  # Example coordinates
 circle_radius = 5  # Example radius in km
 
 # Example salt cavern polygon (outside the circle)
-salt_cavern_location = [(2, 15), (4, 15), (4, 13), (2, 13)]
+salt_cavern_location = [(2, 15), (3, 15), (3, 14), (2, 14)]
 
 plot_project_idea(site_point, circle_radius, salt_cavern_location)
 

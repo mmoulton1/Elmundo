@@ -81,7 +81,7 @@ excluded_sites_df = excluded_sites_gdf.drop(columns='geometry')
 
 # Step 1: Collect closest centroids and their indices for each site point
 closest_centroids_list = []
-for _, site_point in excluded_sites_gdf.head(2).iterrows():   # Process only the first 10 sites
+for _, site_point in excluded_sites_gdf.head(10).iterrows():   # Process only the first 10 sites
     closest_centroids = find_closest_centroids(site_point.geometry, geologic_storage_data[['centroid']])
     closest_centroids_list.append((site_point.name, closest_centroids))
 
@@ -152,8 +152,8 @@ def plot_closest_points(df, state_data, geologic_storage_data, site_gdf, cmap, n
         ax.plot(closest_point.x, closest_point.y, marker='x', color=color, markersize=.125)
 
         # Draw a line between the site point and the closest point
-        line = LineString([site_point, closest_point])
-        ax.plot(*line.xy, color=color, linewidth=.25)
+        #line = LineString([site_point, closest_point])
+        #ax.plot(*line.xy, color=color, linewidth=.25)
 
     # Add a color bar
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
@@ -165,9 +165,9 @@ def plot_closest_points(df, state_data, geologic_storage_data, site_gdf, cmap, n
     plt.show()
 
 # Plot Excluded and Included Sites
-#fig, axes = plt.subplots(2, 1, figsize=(10, 20))
-#plot_sites(axes[0], state_data, geologic_storage_data, site_gdf, within_polygon_mask, 'red', 'Excluded Sites', 'x')
-#plot_sites(axes[1], state_data, geologic_storage_data, site_gdf, ~within_polygon_mask, 'green', 'Included Sites', 'o')
+fig, axes = plt.subplots(2, 1, figsize=(10, 20))
+plot_sites(axes[0], state_data, geologic_storage_data, site_gdf, within_polygon_mask, 'red', 'Excluded Sites', 'x')
+plot_sites(axes[1], state_data, geologic_storage_data, site_gdf, ~within_polygon_mask, 'green', 'Included Sites', 'o')
 #plt.show()
 
 # Normalize distances for color mapping
@@ -175,65 +175,65 @@ norm = plt.Normalize(final_closest_points_df['polygon_distance'].min(), final_cl
 cmap = plt.get_cmap('coolwarm')
 
 # Plot Closest Points
-plot_closest_points(final_closest_points_df, state_data, geologic_storage_data, site_gdf, cmap, norm)
+#plot_closest_points(final_closest_points_df, state_data, geologic_storage_data, site_gdf, cmap, norm)
 
 # Plot Site Points and Closest Points
-fig1, ax1 = plt.subplots(figsize=(12, 8))
-state_data.plot(ax=ax1, color='white', edgecolor='black', linewidth=1.5, label='State Data')
-geologic_storage_data.plot(ax=ax1, color='blue', alpha=0.3, label='Geologic Storage')
+#fig1, ax1 = plt.subplots(figsize=(12, 8))
+#state_data.plot(ax=ax1, color='white', edgecolor='black', linewidth=1.5, label='State Data')
+#geologic_storage_data.plot(ax=ax1, color='blue', alpha=0.3, label='Geologic Storage')
 
-for _, row in final_df.iterrows():
-    color = cmap(norm(row['polygon_distance']))
-    site_point = site_gdf.loc[row['site_name']].geometry
-    closest_point = row['closest_point']
+#for _, row in final_df.iterrows():
+   # color = cmap(norm(row['polygon_distance']))
+   # site_point = site_gdf.loc[row['site_name']].geometry
+   # closest_point = row['closest_point']
 
     # Plot the site point
-    ax1.plot(site_point.x, site_point.y, marker='o', color=color, markersize=.5)
+   # ax1.plot(site_point.x, site_point.y, marker='o', color=color, markersize=.5)
     
     # Plot the closest point
-    ax1.plot(closest_point.x, closest_point.y, marker='x', color=color, markersize=.25)
+   # ax1.plot(closest_point.x, closest_point.y, marker='x', color=color, markersize=.25)
     
     # Draw a line between the site point and the closest point
-    line = LineString([site_point, closest_point])
-    ax1.plot(*line.xy, color=color, linewidth=1)
+    #line = LineString([site_point, closest_point])
+  #  ax1.plot(*line.xy, color=color, linewidth=1)
 
 # Add a color bar to indicate distances
 sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
 sm.set_array([])
-fig1.colorbar(sm, ax=ax1, label='Distance to Closest Point (km)')
-ax1.set_xlabel('Longitude')
-ax1.set_ylabel('Latitude')
-ax1.set_title('Site Points and Closest Points')
-plt.show()
+#fig1.colorbar(sm, ax=ax1, label='Distance to Closest Point (km)')
+#ax1.set_xlabel('Longitude')
+#ax1.set_ylabel('Latitude')
+#ax1.set_title('Site Points and Closest Points')
+#plt.show()
 
 # Plot Site Points, Closest Points, and Centroids
-#fig2, ax2 = plt.subplots(figsize=(12, 8))
-#state_data.plot(ax=ax2, color='white', edgecolor='black', linewidth=1.5, label='State Data')
-#geologic_storage_data.plot(ax=ax2, color='blue', alpha=0.3, label='Geologic Storage')
+fig2, ax2 = plt.subplots(figsize=(12, 8))
+state_data.plot(ax=ax2, color='white', edgecolor='black', linewidth=1.5, label='State Data')
+geologic_storage_data.plot(ax=ax2, color='blue', alpha=0.3, label='Geologic Storage')
 
-for _, row in final_df.iterrows():
-    color = cmap(norm(row['polygon_distance']))
-    site_point = site_gdf.loc[row['site_name']].geometry
-    closest_point = row['closest_point']
-    centroid_point = row['centroid_point']
+#for _, row in final_df.iterrows():
+ #   color = cmap(norm(row['polygon_distance']))
+ #   site_point = site_gdf.loc[row['site_name']].geometry
+  #  closest_point = row['closest_point']
+  #  centroid_point = row['centroid_point']
 
     # Plot the site point
-    ax2.plot(site_point.x, site_point.y, marker='o', color=color, markersize=3)
+  #  ax2.plot(site_point.x, site_point.y, marker='o', color=color, markersize=3)
     
     # Plot the closest point
-    ax2.plot(closest_point.x, closest_point.y, marker='x', color=color, markersize=3)
+   # ax2.plot(closest_point.x, closest_point.y, marker='x', color=color, markersize=3)
     
     # Plot the centroid point
-    ax2.plot(centroid_point.x, centroid_point.y, marker='^', color=color, markersize=3)
+   # ax2.plot(centroid_point.x, centroid_point.y, marker='^', color=color, markersize=3)
 
 # Add a color bar to indicate distances
-sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
-sm.set_array([])
-fig2.colorbar(sm, ax=ax2, label='Distance to Closest Point (km)')
-ax2.set_xlabel('Longitude')
-ax2.set_ylabel('Latitude')
-ax2.set_title('Site Points, Closest Points, and Centroids')
-plt.show()
+#sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+#sm.set_array([])
+#fig2.colorbar(sm, ax=ax2, label='Distance to Closest Point (km)')
+#ax2.set_xlabel('Longitude')
+#ax2.set_ylabel('Latitude')
+#ax2.set_title('Site Points, Closest Points, and Centroids')
+#plt.show()
 
 
 # Example usage
@@ -241,8 +241,8 @@ storage_capacity_example = 1000000  # Example storage capacity in kg
 capex_salt_cavern, cost_per_kg_H2_salt_cavern = capital_cost_salt_cavern(storage_capacity_example)
 capex_underground_pipes, cost_per_kg_H2_underground_pipes = capital_cost_underground_pipes(storage_capacity_example)
 
-print(f"Salt Cavern - CAPEX: {capex_salt_cavern:.2f} USD, Cost per kg H2: {cost_per_kg_H2_salt_cavern:.2f} USD")
-print(f"Underground Pipes - CAPEX: {capex_underground_pipes:.2f} USD, Cost per kg H2: {cost_per_kg_H2_underground_pipes:.2f} USD")
+#print(f"Salt Cavern - CAPEX: {capex_salt_cavern:.2f} USD, Cost per kg H2: {cost_per_kg_H2_salt_cavern:.2f} USD")
+#print(f"Underground Pipes - CAPEX: {capex_underground_pipes:.2f} USD, Cost per kg H2: {cost_per_kg_H2_underground_pipes:.2f} USD")
 
 
 # Now an example site that has 1000000kg of storage. I want to calulate the cost of the cavern and the cost of the compressors
@@ -264,11 +264,11 @@ capex_salt_cavern, _ = capital_cost_salt_cavern(storage_capacity)  # Calculate s
 total_capex = capex_salt_cavern + total_capex_compressor
 
 # Print results
-print(f"Motor Rating: {compressor.motor_rating:.2f} kW")
-print(f"Total Power: {compressor.motor_rating * compressor.n_compressors:.2f} kW")
-print(f"Total Capital Expenditure (Compressor System): ${total_capex_compressor:.2f}")
-print(f"Total Capital Expenditure (Salt Cavern Storage): ${capex_salt_cavern:.2f}")
-print(f"Total Capital Expenditure: ${total_capex:.2f}")
+#print(f"Motor Rating: {compressor.motor_rating:.2f} kW")
+#print(f"Total Power: {compressor.motor_rating * compressor.n_compressors:.2f} kW")
+#print(f"Total Capital Expenditure (Compressor System): ${total_capex_compressor:.2f}")
+#print(f"Total Capital Expenditure (Salt Cavern Storage): ${capex_salt_cavern:.2f}")
+#print(f"Total Capital Expenditure: ${total_capex:.2f}")
 
 # Initialize the plot
 fig, ax = plt.subplots(figsize=(10, 10))
@@ -298,7 +298,7 @@ site_gdf[~within_polygon_mask].plot(ax=ax, color='green', marker='o', label='Inc
 print(site_gdf[['latitude', 'longitude', 'hydrogen_storage_size_kg']].head(10))
 
 
-# Import the functions from cost_functions.py
+# Import the functions from breakpoint.py
 from breakpoint import combined_cost_salt_cavern_compressor_pipeline, combined_cost_underground_pipe_compressor, find_equilibrium_pipeline_length
 
 # Apply the function directly using a lambda function
@@ -336,29 +336,77 @@ print(final_closest_points_df.head())
 #within_storage_sites['longitude'] = within_storage_sites['geometry'].apply(lambda geom: geom.x)
 
 # Apply the function directly using a lambda function for salt cavern cost
-within_storage_sites['salt_cavern_cost'] = within_storage_sites.apply(
-    lambda row: combined_cost_salt_cavern_compressor_pipeline(
-        row['hydrogen_storage_size_kg'],
-        100,  # p_outlet fixed at 100
-        row['max_h2_kg_pr_hr'] * 24,  # Convert flow rate to kg/day
-        0  # Distance to cavern is zero
-    )['total_cost'],  # Extract total cost
-    axis=1
-)
+#within_storage_sites['salt_cavern_cost'] = within_storage_sites.apply(
+    #lambda row: combined_cost_salt_cavern_compressor_pipeline(
+    #    row['hydrogen_storage_size_kg'],
+     #   100,  # p_outlet fixed at 100
+    #    row['max_h2_kg_pr_hr'] * 24,  # Convert flow rate to kg/day
+     #   0  # Distance to cavern is zero
+  #  )['total_cost'],  # Extract total cost
+  #  axis=1
+#)
 
 # Apply the function directly using a lambda function for underground pipe cost
-within_storage_sites['underground_pipe_cost'] = within_storage_sites.apply(
-    lambda row: combined_cost_underground_pipe_compressor(
-        row['hydrogen_storage_size_kg'],
-        100,  # p_outlet fixed at 100
-        row['max_h2_kg_pr_hr'] * 24  # Convert flow rate to kg/day
-    )['total_cost'],  # Extract total cost
-    axis=1
-)
+#within_storage_sites['underground_pipe_cost'] = within_storage_sites.apply(
+   # lambda row: combined_cost_underground_pipe_compressor(
+   #     row['hydrogen_storage_size_kg'],
+  #      100,  # p_outlet fixed at 100
+   #     row['max_h2_kg_pr_hr'] * 24  # Convert flow rate to kg/day
+   # )['total_cost'],  # Extract total cost
+  #  axis=1
+#)
 
 # Display the first few rows of the within_storage_sites DataFrame
-print(within_storage_sites.head())
+#print(within_storage_sites.head())
 # Save the within_storage_sites DataFrame to CSV with the filename containing the number of sites
 #within_storage_sites.to_csv("/Users/mmoulton/Documents/Projects/Elmundo/inputs/{}sites_within_storage_sites.csv".format(len(within_storage_sites)))
 
-print(f"Data saved to /Users/mmoulton/Documents/Projects/Elmundo/inputs/{len(within_storage_sites)}sites_within_storage_sites.csv")
+#print(f"Data saved to /Users/mmoulton/Documents/Projects/Elmundo/inputs/{len(within_storage_sites)}sites_within_storage_sites.csv")
+
+def plot_salt_cavern_costs(df, state_data, geologic_storage_data, site_gdf):
+    """
+    Plot site points and closest points with colors representing the salt cavern storage costs.
+
+    Parameters:
+    df (DataFrame): The DataFrame containing the site points and their associated costs.
+    state_data (GeoDataFrame): GeoDataFrame containing state boundary data.
+    geologic_storage_data (GeoDataFrame): GeoDataFrame containing geologic storage locations.
+    site_gdf (GeoDataFrame): GeoDataFrame containing the site points.
+    """
+
+    # Create a colormap and normalization based on the salt cavern cost
+    cmap = plt.get_cmap('YlOrRd')
+    norm = mcolors.Normalize(vmin=df['salt_cavern_cost'].min(), vmax=df['salt_cavern_cost'].max())
+    
+    fig, ax = plt.subplots(figsize=(12, 8))
+    state_data.plot(ax=ax, color='white', edgecolor='black', linewidth=1.5)
+    geologic_storage_data.plot(ax=ax, color='blue', alpha=0.3)
+
+    for _, row in df.iterrows():
+        color = cmap(norm(row['salt_cavern_cost']))
+        site_point = site_gdf.loc[row['site_name']].geometry
+        closest_point = row['closest_point']
+
+        # Plot the site point
+        ax.plot(site_point.x, site_point.y, marker='o', color=color, markersize=.125)
+
+        # Plot the closest point
+        #ax.plot(closest_point.x, closest_point.y, marker='x', color=color, markersize=.125)
+
+        # Draw a line between the site point and the closest point
+        #line = LineString([site_point, closest_point])
+        #ax.plot(*line.xy, color=color, linewidth=.25)
+
+    # Add a color bar based on the salt cavern cost
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+    sm.set_array([])
+    fig.colorbar(sm, ax=ax, label='Salt Cavern Storage Cost (USD)')
+    ax.set_xlabel('Longitude')
+    ax.set_ylabel('Latitude')
+    ax.set_title('Site Points with Salt Cavern Storage Cost')
+    plt.show()
+
+# Assuming final_closest_points_df, state_data, geologic_storage_data, and site_gdf are already defined
+plot_salt_cavern_costs(final_closest_points_df, state_data, geologic_storage_data, site_gdf)
+#Whoever works on this next should make sure to use the CPI to convert all dollars to the same year. I did not do that yet.
+
