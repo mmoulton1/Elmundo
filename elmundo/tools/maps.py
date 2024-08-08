@@ -81,7 +81,7 @@ excluded_sites_df = excluded_sites_gdf.drop(columns='geometry')
 
 # Step 1: Collect closest centroids and their indices for each site point
 closest_centroids_list = []
-for _, site_point in excluded_sites_gdf.head(10).iterrows():   # Process only the first 10 sites
+for _, site_point in excluded_sites_gdf.iterrows():   # Process only the first 10 sites
     closest_centroids = find_closest_centroids(site_point.geometry, geologic_storage_data[['centroid']])
     closest_centroids_list.append((site_point.name, closest_centroids))
 
@@ -156,18 +156,18 @@ def plot_closest_points(df, state_data, geologic_storage_data, site_gdf, cmap, n
         #ax.plot(*line.xy, color=color, linewidth=.25)
 
     # Add a color bar
-    sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
-    sm.set_array([])
-    fig.colorbar(sm, ax=ax, label='Distance to Closest Point (km)')
-    ax.set_xlabel('Longitude')
-    ax.set_ylabel('Latitude')
-    ax.set_title('Site Points and Closest Points')
-    plt.show()
+   # sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+   # sm.set_array([])
+  #  fig.colorbar(sm, ax=ax, label='Distance to Closest Point (km)')
+   # ax.set_xlabel('Longitude')
+   # ax.set_ylabel('Latitude')
+   # ax.set_title('Site Points and Closest Points')
+   # plt.show()
 
 # Plot Excluded and Included Sites
-fig, axes = plt.subplots(2, 1, figsize=(10, 20))
-plot_sites(axes[0], state_data, geologic_storage_data, site_gdf, within_polygon_mask, 'red', 'Excluded Sites', 'x')
-plot_sites(axes[1], state_data, geologic_storage_data, site_gdf, ~within_polygon_mask, 'green', 'Included Sites', 'o')
+#fig, axes = plt.subplots(2, 1, figsize=(10, 20))
+#plot_sites(axes[0], state_data, geologic_storage_data, site_gdf, within_polygon_mask, 'red', 'Excluded Sites', 'x')
+#plot_sites(axes[1], state_data, geologic_storage_data, site_gdf, ~within_polygon_mask, 'green', 'Included Sites', 'o')
 #plt.show()
 
 # Normalize distances for color mapping
@@ -323,45 +323,45 @@ final_closest_points_df['underground_pipe_cost'] = final_closest_points_df.apply
 
 # Display the updated DataFrame to verify the results
 print(final_closest_points_df.head())
-#final_closest_points_df.to_csv("/Users/mmoulton/Documents/Projects/Elmundo/inputs/{}sites_final_sitelist.csv".format(len(final_closest_points_df)))
+final_closest_points_df.to_csv("/Users/mmoulton/Documents/Projects/Elmundo/inputs/{}sites_final_sitelist_v1.csv".format(len(final_closest_points_df)))
 
 # Filter sites within geologic storage polygons
-#sites_within_geologic_storage = site_gdf[within_polygon_mask]
+sites_within_geologic_storage = site_gdf[within_polygon_mask]
 
 # Initialize DataFrame for the comparison
-#within_storage_sites = sites_within_geologic_storage.copy()
+within_storage_sites = sites_within_geologic_storage.copy()
 
 # Add latitude and longitude to the DataFrame for easier reference
-#within_storage_sites['latitude'] = within_storage_sites['geometry'].apply(lambda geom: geom.y)
-#within_storage_sites['longitude'] = within_storage_sites['geometry'].apply(lambda geom: geom.x)
+within_storage_sites['latitude'] = within_storage_sites['geometry'].apply(lambda geom: geom.y)
+within_storage_sites['longitude'] = within_storage_sites['geometry'].apply(lambda geom: geom.x)
 
 # Apply the function directly using a lambda function for salt cavern cost
-#within_storage_sites['salt_cavern_cost'] = within_storage_sites.apply(
-    #lambda row: combined_cost_salt_cavern_compressor_pipeline(
-    #    row['hydrogen_storage_size_kg'],
-     #   100,  # p_outlet fixed at 100
-    #    row['max_h2_kg_pr_hr'] * 24,  # Convert flow rate to kg/day
-     #   0  # Distance to cavern is zero
-  #  )['total_cost'],  # Extract total cost
-  #  axis=1
-#)
+within_storage_sites['salt_cavern_cost'] = within_storage_sites.apply(
+    lambda row: combined_cost_salt_cavern_compressor_pipeline(
+        row['hydrogen_storage_size_kg'],
+        100,  # p_outlet fixed at 100
+        row['max_h2_kg_pr_hr'] * 24,  # Convert flow rate to kg/day
+        0  # Distance to cavern is zero
+    )['total_cost'],  # Extract total cost
+    axis=1
+)
 
 # Apply the function directly using a lambda function for underground pipe cost
-#within_storage_sites['underground_pipe_cost'] = within_storage_sites.apply(
-   # lambda row: combined_cost_underground_pipe_compressor(
-   #     row['hydrogen_storage_size_kg'],
-  #      100,  # p_outlet fixed at 100
-   #     row['max_h2_kg_pr_hr'] * 24  # Convert flow rate to kg/day
-   # )['total_cost'],  # Extract total cost
-  #  axis=1
-#)
+within_storage_sites['underground_pipe_cost'] = within_storage_sites.apply(
+    lambda row: combined_cost_underground_pipe_compressor(
+        row['hydrogen_storage_size_kg'],
+        100,  # p_outlet fixed at 100
+        row['max_h2_kg_pr_hr'] * 24  # Convert flow rate to kg/day
+    )['total_cost'],  # Extract total cost
+    axis=1
+)
 
 # Display the first few rows of the within_storage_sites DataFrame
-#print(within_storage_sites.head())
+print(within_storage_sites.head())
 # Save the within_storage_sites DataFrame to CSV with the filename containing the number of sites
-#within_storage_sites.to_csv("/Users/mmoulton/Documents/Projects/Elmundo/inputs/{}sites_within_storage_sites.csv".format(len(within_storage_sites)))
+within_storage_sites.to_csv("/Users/mmoulton/Documents/Projects/Elmundo/inputs/{}sites_within_storage_sites.csv".format(len(within_storage_sites)))
 
-#print(f"Data saved to /Users/mmoulton/Documents/Projects/Elmundo/inputs/{len(within_storage_sites)}sites_within_storage_sites.csv")
+print(f"Data saved to /Users/mmoulton/Documents/Projects/Elmundo/inputs/{len(within_storage_sites)}sites_within_storage_sites_v1.csv")
 
 def plot_salt_cavern_costs(df, state_data, geologic_storage_data, site_gdf):
     """
@@ -407,6 +407,6 @@ def plot_salt_cavern_costs(df, state_data, geologic_storage_data, site_gdf):
     plt.show()
 
 # Assuming final_closest_points_df, state_data, geologic_storage_data, and site_gdf are already defined
-plot_salt_cavern_costs(final_closest_points_df, state_data, geologic_storage_data, site_gdf)
+#plot_salt_cavern_costs(final_closest_points_df, state_data, geologic_storage_data, site_gdf)
 #Whoever works on this next should make sure to use the CPI to convert all dollars to the same year. I did not do that yet.
 

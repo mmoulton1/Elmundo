@@ -1,4 +1,4 @@
-from capital_costs import capital_cost_salt_cavern, capital_cost_underground_pipes, Compressor, pipeline
+from capital_costs import capital_cost_salt_cavern, capital_cost_underground_pipes, Compressor, pipeline, capital_cost_hardrock_cavern
 import scipy.optimize as opt
 
 def combined_cost_salt_cavern_compressor_pipeline(storage_capacity, p_outlet, flow_rate_kg_d, pipeline_length):
@@ -58,7 +58,63 @@ if __name__ == "__main__":
     costs = combined_cost_salt_cavern_compressor_pipeline(storage_capacity, p_outlet, flow_rate_kg_d, pipeline_length)
     print(costs)
 
-from capital_costs import capital_cost_underground_pipes, Compressor, pipeline
+def combined_cost_hardrock_cavern_compressor_pipeline(storage_capacity, p_outlet, flow_rate_kg_d, pipeline_length):
+    """
+    Calculate the combined capital cost of H2 storage in hardrock caverns, compressors, and pipelines.
+
+    Parameters:
+    storage_capacity (float): Storage capacity of the cavern in kg.
+    p_outlet (float): Outlet pressure for the compressor in bar.
+    flow_rate_kg_d (float): Flow rate for the compressor in kg/day.
+    pipeline_length (float): Length of the pipeline in km.
+
+    Returns:
+    dict: Dictionary containing individual and total capital costs in 2018 USD (actually I'm not sure what year dollars it is in).
+    """
+
+    # Calculate capital cost for salt cavern storage
+    cavern_cost, cavern_cost_per_kg_H2 = capital_cost_hardrock_cavern(storage_capacity)
+
+    # Initialize compressor
+    compressor = Compressor(p_outlet=p_outlet, flow_rate_kg_d=flow_rate_kg_d)
+
+    # Calculate compressor power
+    compressor.compressor_power()
+    compressor_power, system_power = compressor.compressor_system_power()
+
+    # Calculate compressor costs
+    compressor_cost = compressor.compressor_costs()
+
+    # Calculate capital cost for pipeline
+    pipeline_cost = pipeline(pipeline_length)
+
+    # Combine costs
+    total_cost = cavern_cost + compressor_cost + pipeline_cost
+    overall_cost_per_kg_H2 = total_cost/storage_capacity
+
+    return {
+        'cavern_cost': cavern_cost,
+        'cavern_cost_per_kg_H2': cavern_cost_per_kg_H2,
+        'compressor_power': compressor_power,
+        'system_power': system_power,
+        'compressor_cost': compressor_cost,
+        'pipeline_cost': pipeline_cost,
+        'total_cost': total_cost,
+        'overall_cost_per_kg_H2' : overall_cost_per_kg_H2
+        
+        
+    }
+
+# Example usage
+if __name__ == "__main__":
+    storage_capacity = 6000000  # Example storage capacity in kg
+    p_outlet = 100  # Example outlet pressure in bar
+    flow_rate_kg_d = 50000  # Example flow rate in kg/day
+    pipeline_length = 1000  # Example pipeline length in km
+
+    costs = combined_cost_hardrock_cavern_compressor_pipeline(storage_capacity, p_outlet, flow_rate_kg_d, pipeline_length)
+    print(costs)
+ 
 
 def combined_cost_underground_pipe_compressor(storage_capacity, p_outlet, flow_rate_kg_d):
     """

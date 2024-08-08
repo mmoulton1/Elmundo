@@ -6,6 +6,7 @@ from geopy.point import Point
 from shapely.geometry import Point as ShapelyPoint, Polygon, MultiPolygon
 
 #define a function for the capital cost of H2 storage in salt caverns. I am using the model from Papadias
+#We have to adjust the CPI to make sure the dollars are calculated at the same year
 def capital_cost_salt_cavern(storage_capacity): 
     """
     Calculate the capital cost of H2 storage in salt caverns using the Papadias model.
@@ -39,9 +40,38 @@ def capital_cost_underground_pipes(storage_capacity):
     float: Cost per kg H2 in 2019 USD.
     """
     # Installed capital cost constants for underground pipes
-    a = 0.001559
-    b = 0.035313
-    c = 4.5183
+    a = 0.0041617
+    b = 0.060369
+    c = 6.4581
+
+    # Calculate cost per kg H2 in 2019 USD
+    cost_per_kg_H2 = np.exp(a * (np.log(storage_capacity / 1000)) ** 2 - b * np.log(storage_capacity / 1000) + c)
+    
+    # Calculate installed capital expenditure (CAPEX) in 2019 USD
+    installed_capex = cost_per_kg_H2 * storage_capacity
+    
+    # Cost adjustment from 2019 to 2018 USD
+    cepci_overall = 1.29 / 1.30
+    adjusted_installed_capex = installed_capex * cepci_overall
+    
+    return adjusted_installed_capex, cost_per_kg_H2
+
+
+def capital_cost_hardrock_cavern(storage_capacity):
+    """
+    Calculate the capital cost of H2 storage in rock caverns using a similar model to Papadias.
+
+    Parameters:
+    storage_capacity (float): Storage capacity of the cavern in kg.
+
+    Returns:
+    float: Adjusted installed capital cost in 2018 USD.
+    float: Cost per kg H2 in 2019 USD.
+    """
+    # Installed capital cost constants for underground pipes
+    a = 0.095803
+    b = 1.5868
+    c = 10.332
 
     # Calculate cost per kg H2 in 2019 USD
     cost_per_kg_H2 = np.exp(a * (np.log(storage_capacity / 1000)) ** 2 - b * np.log(storage_capacity / 1000) + c)
@@ -154,6 +184,6 @@ class Compressor:
         return total_capex
 
 def pipeline(distance):
-    d = 641057.2079 #cost per km in USD
+    d = 641057.2079 #cost per km in USD this is an average from the HDSAM model
     pipe_cost = d * distance 
     return pipe_cost
