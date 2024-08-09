@@ -17,7 +17,7 @@ def meters_to_degrees(meter_value, latitude):
     degree_value = meter_value / distance
     return degree_value
 
-def densify(polygon, num_points=500):
+def densify(polygon, num_points=100):
     """Adds more points to the polygon's boundary to densify it."""
     if isinstance(polygon, MultiPolygon):
         return MultiPolygon([densify(poly, num_points) for poly in polygon.geoms])

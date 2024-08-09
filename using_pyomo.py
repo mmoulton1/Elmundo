@@ -1,15 +1,13 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import os
 import geopandas as gpd
-from shapely.geometry import Point, Polygon, MultiPolygon, LineString
+from shapely.geometry import Point, Polygon
 from geopy.distance import geodesic
-from shapely.ops import unary_union
-os.system('pip install pyomo')
-from pyomo.environ import ConcreteModel, Var, Objective, Constraint, SolverFactory, maximize, Binary
+import os
+import pyomo.environ as pyo
+from shapely.prepared import prep
 
-
-# This is a work in progress. Contour placement
+# This is a work in progress. Contour placement with pyomo
 def meters_to_degrees(meter_value, latitude):
     """Converts meters to degrees at a given latitude."""
     point1 = (latitude, 0)
@@ -18,116 +16,69 @@ def meters_to_degrees(meter_value, latitude):
     degree_value = meter_value / distance
     return degree_value
 
-def densify(polygon, num_points=500):
-    """Adds more points to the polygon's boundary to densify it."""
-    if isinstance(polygon, MultiPolygon):
-        return MultiPolygon([densify(poly, num_points) for poly in polygon.geoms])
-    
-    line = LineString(polygon.exterior.coords)
-    distances = np.linspace(0, line.length, num_points)
-    points = [line.interpolate(distance) for distance in distances]
-    
-    # Filter out any empty or invalid points
-    filtered_points = []
-    for point in points:
-        if not point.is_empty:
-            filtered_points.append((point.x, point.y))
-    
-    if len(filtered_points) > 2:  # Polygon must have at least 3 points
-        return Polygon(filtered_points)
-    else:
-        return Polygon()  # Return an empty polygon if not enough points
-
-
-def plot_and_count_polar_circles_filled(main_polygon, circle_diameter_m, offset_distance_m, obstacle_polygon):
+def plot_polygon_and_circles(main_polygon, obstacle_polygon, circle_centers, circle_diameter_m):
     fig, ax = plt.subplots(figsize=(10, 10))
     gpd.GeoSeries([main_polygon]).plot(ax=ax, edgecolor='black', facecolor='none')
     gpd.GeoSeries([obstacle_polygon]).plot(ax=ax, edgecolor='red', facecolor='none')
-    
-    minx, miny, maxx, maxy = main_polygon.bounds
-    center_lat = (miny + maxy) / 2
 
-    # Convert circle diameter and offset distance from meters to degrees
-    circle_diameter = meters_to_degrees(circle_diameter_m, center_lat)
-    offset_distance = meters_to_degrees(offset_distance_m, center_lat)
-    radius = circle_diameter / 2
-    circle_count = 0
+    for (x, y) in circle_centers:
+        circle = Point(x, y).buffer(meters_to_degrees(circle_diameter_m / 2, y))
+        gpd.GeoSeries([circle]).plot(ax=ax, edgecolor='blue', facecolor='none')
 
-    # List to keep track of placed circles
-    placed_circles = []
-
-    def place_circles_within(polygon):
-        nonlocal circle_count
-        grid_step = radius/5  # Grid step size based on circle diameter
-        x_min, y_min, x_max, y_max = polygon.bounds
-        
-        for x in np.arange(x_min + radius, x_max, grid_step):
-            for y in np.arange(y_min + radius, y_max, grid_step):
-                point = Point(x, y)
-                circle = point.buffer(radius)
-                
-                if polygon.contains(circle) and not obstacle_polygon.intersects(circle):
-                    too_close = False
-                    for placed_circle in placed_circles:
-                        if placed_circle.distance(circle) < offset_distance:
-                            too_close = True
-                            break
-                    if not too_close:
-                        gpd.GeoSeries([circle]).plot(ax=ax, edgecolor='blue', facecolor='none')
-                        circle_count += 1
-                        placed_circles.append(circle)
-                   # else:
-                        #print(f"Circle at ({x}, {y}) is too close to another circle.")
-                #else:
-                  #  print(f"Circle at ({x}, {y}) is not valid: {circle.bounds}")
-
-    current_polygon = main_polygon
-
-    while not current_polygon.is_empty:
-        # Place circles within the current polygon
-        if isinstance(current_polygon, MultiPolygon):
-            for poly in current_polygon.geoms:
-                place_circles_within(poly)
-        else:
-            place_circles_within(current_polygon)
-
-        # Move inward by buffering
-        buffer_distance = -radius/5
-        current_polygon = current_polygon.buffer(buffer_distance)
-        
-        # Ensure the buffered polygon is densified for the next iteration
-        if isinstance(current_polygon, MultiPolygon):
-            current_polygon = MultiPolygon([densify(poly) for poly in current_polygon.geoms])
-        else:
-            current_polygon = densify(current_polygon)
-
-    ax.set_xlim(minx - 0.01, maxx + 0.01)
-    ax.set_ylim(miny - 0.01, maxy + 0.01)
-    
+    ax.set_xlim(main_polygon.bounds[0] - 0.01, main_polygon.bounds[2] + 0.01)
+    ax.set_ylim(main_polygon.bounds[1] - 0.01, main_polygon.bounds[3] + 0.01)
     plt.show()
-    # Print the number of circles placed
-    print(f"The number of circles with diameter {circle_diameter_m} meters and offset {offset_distance_m} meters that can fit inside the geologic site, avoiding the obstacle polygon, is {circle_count}.")
-    
-    return placed_circles
 
-def calculate_adjacent_distances(circles, latitude):
-    distances = []
-    for i in range(len(circles) - 1):
-        current_center = circles[i].centroid
-        next_center = circles[i + 1].centroid
-        
-        # Convert centroid coordinates from degrees to latitude/longitude tuples
-        current_coord = (current_center.y, current_center.x)
-        next_coord = (next_center.y, next_center.x)
-        
-        # Calculate the distance in meters
-        distance_between_centers = geodesic(current_coord, next_coord).meters
-        distances.append(distance_between_centers)
-    
-    for i, distance in enumerate(distances):
-        print(f"Distance between circle {i+1} and circle {i+2} centers: {distance:.2f} meters")
+def optimize_circle_placement(main_polygon, circle_diameter_m, offset_distance_m, obstacle_polygon):
+    # Convert circle diameter and offset distance from meters to degrees
+    radius = meters_to_degrees(circle_diameter_m / 2, main_polygon.centroid.y)
+    offset_distance = meters_to_degrees(offset_distance_m, main_polygon.centroid.y)
 
+    N = 100  # Estimate maximum number of circles
+    model = pyo.ConcreteModel()
 
+    # Variables: Coordinates of circle centers and a binary variable to indicate if a circle is placed
+    model.x = pyo.Var(range(N), domain=pyo.Reals, bounds=(main_polygon.bounds[0], main_polygon.bounds[2]))
+    model.y = pyo.Var(range(N), domain=pyo.Reals, bounds=(main_polygon.bounds[1], main_polygon.bounds[3]))
+    model.z = pyo.Var(range(N), domain=pyo.Binary)
+
+    # Objective: Maximize the number of placed circles
+    model.obj = pyo.Objective(expr=sum(model.z[i] for i in range(N)), sense=pyo.maximize)
+
+    # Constraints: Circles must be within the polygon bounds
+    def inside_bounds_x(model, i):
+        return model.x[i] >= main_polygon.bounds[0] and model.x[i] <= main_polygon.bounds[2]
+
+    def inside_bounds_y(model, i):
+        return model.y[i] >= main_polygon.bounds[1] and model.y[i] <= main_polygon.bounds[3]
+
+    model.inside_bounds_x = pyo.Constraint(range(N), rule=inside_bounds_x)
+    model.inside_bounds_y = pyo.Constraint(range(N), rule=inside_bounds_y)
+
+    # Constraints: Circles must not overlap with the obstacle polygon
+    def no_intersection_with_obstacle(model, i):
+        prepared_obstacle = prep(obstacle_polygon)
+        circle_center = Point(model.x[i], model.y[i])
+        circle = circle_center.buffer(radius)
+        return prepared_obstacle.disjoint(circle)
+    model.no_intersection_with_obstacle = pyo.Constraint(range(N), rule=no_intersection_with_obstacle)
+
+    # Constraint: Circles must not overlap with each other
+    def no_overlap(model, i, j):
+        if i < j:
+            distance_between_centers = ((model.x[i] - model.x[j])**2 + (model.y[i] - model.y[j])**2)**0.5
+            return distance_between_centers >= 2 * radius + offset_distance
+        return pyo.Constraint.Skip
+    model.no_overlap = pyo.Constraint(range(N), range(N), rule=no_overlap)
+
+    # Solve the model
+    solver = pyo.SolverFactory('glpk')
+    solver.solve(model)
+
+    # Extract the placed circle centers
+    circle_centers = [(pyo.value(model.x[i]), pyo.value(model.y[i])) for i in range(N) if pyo.value(model.z[i]) > 0.5]
+
+    return circle_centers
 
 # Load geologic site data and set parameters
 INPUT_DIR1 = "/Users/mmoulton/Documents/Projects/Elmundo/inputs/tl_2023_us_state"
@@ -149,10 +100,8 @@ geologic_storage_data = geologic_storage_data.to_crs(epsg=4326)
 single_geologic_site = geologic_storage_data.iloc[0:1]
 site_geometry = single_geologic_site.geometry.values[0]
 
-# Get the bounds of the site geometry
-minx, miny, maxx, maxy = site_geometry.bounds
-
 # Create an obstacle polygon closer to the center of the site geometry
+minx, miny, maxx, maxy = site_geometry.bounds
 obstacle_polygon = Polygon([
     (minx + (maxx - minx) * 0.4, miny + (maxy - miny) * 0.4),
     (minx + (maxx - minx) * 0.5, miny + (maxy - miny) * 0.4),
@@ -160,24 +109,12 @@ obstacle_polygon = Polygon([
     (minx + (maxx - minx) * 0.4, miny + (maxy - miny) * 0.5)
 ])
 
-# Print the coordinates of the obstacle polygon
-obstacle_coords = list(obstacle_polygon.exterior.coords)
-print("Coordinates of the obstacle polygon:")
-for coord in obstacle_coords:
-    print(coord)
-
-# Check if the obstacle polygon is within the site geometry
-is_within = site_geometry.contains(obstacle_polygon)
-print(f"Is the obstacle polygon within the site geometry? {is_within}")
-
 # Define circle parameters
-circle_diameter_m = 10000
-offset_distance_m = 5000
+circle_diameter_m = 100000
+offset_distance_m = 50000
 
-# Plot and count circles
-placed_circles = plot_and_count_polar_circles_filled(site_geometry, circle_diameter_m, offset_distance_m, obstacle_polygon)
+# Run the optimization to place circles
+circle_centers = optimize_circle_placement(site_geometry, circle_diameter_m, offset_distance_m, obstacle_polygon)
 
-# Calculate and print distances between adjacent circles in meters
-# Use the latitude of the circles' centroid for accurate distance calculation
-center_lat = (site_geometry.bounds[1] + site_geometry.bounds[3]) / 2
-calculate_adjacent_distances(placed_circles, center_lat)
+# Plot the results
+plot_polygon_and_circles(site_geometry, obstacle_polygon, circle_centers, circle_diameter_m)
